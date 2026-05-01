@@ -6,6 +6,10 @@ export default function Home() {
     const [items, setItems] = useState([]);
     const [title, setTitle] = useState('');
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    // --- NEW STATES FOR UPDATING ---
+    const [editingId, setEditingId] = useState(null);
+    const [editText, setEditText] = useState('');
     
     const API_URL = 'http://127.0.0.1:5000/api/items';
 
@@ -43,12 +47,33 @@ export default function Home() {
         }
     };
 
+    // --- NEW UPDATE FUNCTION ---
+    const startEditing = (item) => {
+        setEditingId(item._id);
+        setEditText(item.title);
+    };
+
+    const cancelEditing = () => {
+        setEditingId(null);
+        setEditText('');
+    };
+
+    const updateItem = async (id) => {
+        if (!editText.trim()) return;
+        try {
+            await axios.put(`${API_URL}/${id}`, { title: editText });
+            setEditingId(null);
+            setRefreshTrigger(prev => prev + 1);
+        } catch (error) {
+            console.error("Update error:", error);
+        }
+    };
+
     return (
-        // Added text-white to the main wrapper
         <div className="p-10 max-w-2xl mx-auto min-h-screen bg-[#0f172a] text-white">
             
             <h1 className="text-5xl font-extrabold mb-10 text-white tracking-tight">
-                Task Manager <span className="text-blue-500">v1</span>
+                Task Manager <span className="text-blue-500"></span>
             </h1>
             
             <div className="flex gap-3 mb-10">
@@ -78,15 +103,48 @@ export default function Home() {
                         key={item._id} 
                         className="flex justify-between items-center bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-sm hover:border-slate-600 transition-all"
                     >
-                        {/* Explicit text-white on the task title */}
-                        <span className="text-xl font-medium text-white">{item.title}</span>
-                        
-                        <button 
-                            onClick={() => deleteItem(item._id)} 
-                            className="bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white px-5 py-2 rounded-lg font-bold transition-all border border-red-500/20"
-                        >
-                            Delete
-                        </button>
+                        {editingId === item._id ? (
+                            // EDIT MODE UI
+                            <div className="flex flex-1 gap-2 mr-4">
+                                <input 
+                                    className="bg-slate-900 border border-blue-500 p-2 rounded-lg flex-1 text-white outline-none"
+                                    value={editText}
+                                    onChange={(e) => setEditText(e.target.value)}
+                                    autoFocus
+                                />
+                                <button 
+                                    onClick={() => updateItem(item._id)}
+                                    className="bg-green-600 hover:bg-green-500 px-4 py-2 rounded-lg font-bold text-sm"
+                                >
+                                    Save
+                                </button>
+                                <button 
+                                    onClick={cancelEditing}
+                                    className="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg font-bold text-sm"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        ) : (
+                            // VIEW MODE UI
+                            <>
+                                <span className="text-xl font-medium text-white">{item.title}</span>
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={() => startEditing(item)} 
+                                        className="bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white px-4 py-2 rounded-lg font-bold transition-all border border-blue-500/20"
+                                    >
+                                        Edit
+                                    </button>
+                                    <button 
+                                        onClick={() => deleteItem(item._id)} 
+                                        className="bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white px-4 py-2 rounded-lg font-bold transition-all border border-red-500/20"
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 ))}
             </div>
